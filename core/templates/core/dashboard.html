@@ -1,0 +1,6 @@
+{% extends 'core/base.html' %}{% block title %}Command Center · FamilyOS{% endblock %}
+{% block content %}<section class="welcome"><p class="eyebrow">Command Center</p><h1>Hello, {{ request.user.first_name }}.</h1><p class="lede">A little clarity for the people who matter most.</p></section>
+<div class="grid"><section class="card"><span class="badge">Your family</span><h2>{{ family.name }}</h2><p>{{ family.mission|default:'Set a shared intention for your family’s future.' }}</p><a class="action" href="{% url 'family' %}">Edit family details →</a></section>
+<section class="card"><span class="badge">Account</span><h2>Owner access is ready</h2><p>Manage your profile and control where you’re signed in.</p><a class="action" href="{% url 'sessions' %}">Review sessions →</a></section></div>
+<section class="card"><h2>Building your central FamilyOS</h2><p>Your profile and family details are saved on the server. Family enrollment, tasks, reminders, and documents will arrive in later stages.</p><p class="muted">This release establishes your private foundation.</p></section>
+<section class="card"><h2>Recent activity</h2><ul class="activity">{% for event in events %}<li><span>{{ event.label }}</span><time>{{ event.created_at|date:'M j, Y · H:i' }} UTC</time></li>{% empty %}<li>Your activity will appear here.</li>{% endfor %}</ul></section>{% endblock %}
