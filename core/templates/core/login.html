@@ -1,0 +1,5 @@
+{% extends 'core/base.html' %}{% block title %}Sign in · FamilyOS{% endblock %}
+{% block content %}<section class="welcome"><p class="eyebrow">A home for your family’s plans</p><h1>Welcome home.</h1><p class="lede">Your family’s next chapter starts here.</p></section>
+<section class="card login"><span class="badge">Owner access</span><h2>Sign in to FamilyOS</h2><p>Use the owner account set up for this family.</p>
+{% if throttled %}<p class="error" role="alert">Too many sign-in attempts. Please try again in 15 minutes.</p>{% endif %}
+<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Sign in</button></form><p class="muted">Family invitations are not available yet.</p></section>{% endblock %}

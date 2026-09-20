@@ -1,0 +1,29 @@
+name: Foundation checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.12']
+    runs-on: ${{ matrix.os }}
+    env:
+      FAMILYOS_ENV: development
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python manage.py collectstatic --noinput
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py test --verbosity 2
+      - run: python scripts/verify_persistence.py
+      - run: python manage.py check --deploy --fail-level WARNING
+        env:
+          FAMILYOS_ENV: production
+          FAMILYOS_SECRET_KEY: ci-only-not-a-real-secret-abcdefghijklmnopqrstuvwxyz-0123456789
+          FAMILYOS_ALLOWED_HOSTS: familyos.example.test
