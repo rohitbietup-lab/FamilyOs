@@ -1,8 +1,8 @@
 {% load static %}<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}FamilyOS{% endblock %}</title><link rel="stylesheet" href="{% static 'core/app.css' %}"></head>
-<body><header><a class="brand" href="{% url 'dashboard' %}"><span class="logo">F</span> FamilyOS</a><span class="version">V1.4 · Your family, together</span>
+<body><header><a class="brand" href="{% url 'dashboard' %}"><span class="logo">F</span> FamilyOS</a><span class="version">Central FamilyOS · Your family, together</span>
 {% if request.owner_membership %}<form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="quiet">Sign out</button></form>{% endif %}</header>
-{% if request.owner_membership %}<nav aria-label="Main navigation"><a href="{% url 'dashboard' %}">Command Center</a><a href="{% url 'family' %}">Family settings</a><a href="{% url 'profile' %}">Owner profile</a><a href="{% url 'sessions' %}">Sessions</a></nav>{% endif %}
+{% if request.owner_membership %}<nav aria-label="Main navigation"><a href="{% url 'dashboard' %}">Command Center</a><a href="{% url 'finance-list' %}">Finance</a><a href="{% url 'goals-list' %}">Vision &amp; goals</a><a href="{% url 'family' %}">Family settings</a><a href="{% url 'profile' %}">Owner profile</a><a href="{% url 'sessions' %}">Sessions</a></nav>{% endif %}
 <main>{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}{% block content %}{% endblock %}</main>
 <footer>FamilyOS <span>One place for what matters.</span></footer></body></html>

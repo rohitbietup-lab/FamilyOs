@@ -1,5 +1,15 @@
 # V1.4 validation record
 
+## Stage 2 increment — 21 September 2026
+
+- 50 automated tests pass locally on Windows/Python 3.10.5: the 31 V1.4 checks plus 19 central-data tests for exact money arithmetic, invalid input, owner protection, CSRF, stale revisions, archive/restore, goal status, audit rollback, pagination and escaped output.
+- The updated persistence script creates V1.4 tables/data, applies migration 0002, and verifies owner/family/session preservation, finance/goal persistence in new processes, database integrity and backup/restore.
+- Migration drift and production deployment checks pass. Dependencies are unchanged.
+- Browser verification with synthetic data: create finance record → archive → restore with recalculated totals; create goal → dashboard displays its progress. The narrow-screen dashboard was visually inspected.
+- No real family records, production deployment, Gmail/Vault or member enrollment were used. GitHub CI for this new commit is checked after publication; the results above describe local verification.
+
+## V1.4 baseline — 20 September 2026
+
 Validated locally on 20 September 2026 with Windows and Python 3.10.5, Django 5.2.17.
 
 - 31 automated tests pass, including owner-only permissions, inactive users/memberships, CSRF and origin rejection, session rotation/replay/expiry/revocation, password-change invalidation, rate limits, stale-edit conflicts, escaped output, credential-free audit responses, bootstrap rules, database constraints, backup-path protection, pruning and transactional rollback.

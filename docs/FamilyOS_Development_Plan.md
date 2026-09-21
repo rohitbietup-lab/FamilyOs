@@ -41,3 +41,7 @@ Roles are a validated enum on Membership, with one owner per family. User is Dja
 Current APIs use form-encoded writes with CSRF tokens. Family writes require a revision for optimistic concurrency control. Audit entries store action, actor and family IDs and timestamps, not form payloads, passwords or session credentials.
 
 Deployment, real owner provisioning, MFA, password-recovery email, managed cloud storage and migration of the older dashboard's data are separate follow-up work. No production release is implied by the feature-branch commit.
+
+## Stage 2 first increment
+
+Following V1.4's merge, the next feature branch adds persistent asset/liability records and long-term goals to the Command Center. The scope and acceptance behavior are recorded in [STAGE_2.md](STAGE_2.md). This implements the first central data modules while keeping later integrations and enrollment deferred.

@@ -53,6 +53,10 @@ class AuditEvent(models.Model):
             'profile.updated': 'Owner profile updated', 'family.updated': 'Family details updated',
             'session.revoked': 'Session signed out', 'session.revoked_all': 'All sessions signed out',
             'session.invalidated': 'Session ended',
+            'finance.created': 'Financial record added', 'finance.updated': 'Financial record updated',
+            'finance.archived': 'Financial record archived', 'finance.restored': 'Financial record restored',
+            'goal.created': 'Goal added', 'goal.updated': 'Goal updated',
+            'goal.archived': 'Goal archived', 'goal.restored': 'Goal restored',
         }.get(self.action, 'Account activity')
 
     class Meta:
@@ -86,3 +90,85 @@ class Invitation(models.Model):
 
     class Meta:
         constraints = [models.CheckConstraint(condition=Q(status='disabled'), name='invitations_disabled')]
+
+
+class FamilyRecord(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    family = models.ForeignKey(Family, on_delete=models.PROTECT)
+    revision = models.PositiveIntegerField(default=1)
+    archived = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class FinancialRecord(FamilyRecord):
+    class Kind(models.TextChoices):
+        ASSET = 'asset', 'Asset'
+        LIABILITY = 'liability', 'Liability'
+
+    class Category(models.TextChoices):
+        CASH = 'cash', 'Cash / bank balance'
+        INVESTMENT = 'investment', 'Investment'
+        PROPERTY = 'property', 'Property'
+        RETIREMENT = 'retirement', 'Retirement savings'
+        LOAN = 'loan', 'Loan'
+        MORTGAGE = 'mortgage', 'Home loan'
+        CREDIT = 'credit', 'Credit card balance'
+        OTHER = 'other', 'Other'
+
+    name = models.CharField(max_length=120)
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    category = models.CharField(max_length=16, choices=Category.choices)
+    # Integer minor units keep money exact, including on SQLite. INR only in Stage 2.
+    value_paise = models.PositiveBigIntegerField()
+    valued_on = models.DateField()
+    notes = models.CharField(max_length=1000, blank=True)
+
+    class Meta:
+        ordering = ['name', 'id']
+        constraints = [
+            models.CheckConstraint(condition=Q(value_paise__gte=0, value_paise__lte=999999999999999), name='valid_finance_value'),
+            models.CheckConstraint(condition=(
+                Q(kind='asset', category__in=['cash', 'investment', 'property', 'retirement', 'other']) |
+                Q(kind='liability', category__in=['loan', 'mortgage', 'credit', 'other'])
+            ), name='finance_category_matches_kind'),
+        ]
+
+
+class Goal(FamilyRecord):
+    class Area(models.TextChoices):
+        FINANCE = 'finance', 'Finance'
+        EDUCATION = 'education', 'Education'
+        HEALTH = 'health', 'Health'
+        LIFESTYLE = 'lifestyle', 'Lifestyle'
+        OTHER = 'other', 'Other'
+
+    class Status(models.TextChoices):
+        ACTIVE = 'active', 'Active'
+        PAUSED = 'paused', 'Paused'
+        COMPLETED = 'completed', 'Completed'
+
+    title = models.CharField(max_length=160)
+    area = models.CharField(max_length=16, choices=Area.choices)
+    target_date = models.DateField()
+    progress = models.PositiveSmallIntegerField(default=0)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
+    notes = models.CharField(max_length=1000, blank=True)
+
+    @property
+    def overdue(self):
+        return self.status == self.Status.ACTIVE and self.target_date < timezone.localdate()
+
+    class Meta:
+        ordering = ['target_date', 'id']
+        constraints = [
+            models.CheckConstraint(condition=Q(progress__gte=0, progress__lte=100), name='valid_goal_progress'),
+            models.CheckConstraint(condition=Q(area__in=['finance', 'education', 'health', 'lifestyle', 'other']), name='valid_goal_area'),
+            models.CheckConstraint(condition=(
+                Q(status='completed', progress=100) |
+                Q(status__in=['active', 'paused'], progress__lt=100)
+            ), name='goal_status_matches_progress'),
+        ]

@@ -1,0 +1,2 @@
+{% extends 'core/base.html' %}{% block title %}{{ title }} · FamilyOS{% endblock %}
+{% block content %}<section class="welcome"><a href="{% url back_url %}">← Back to records</a><h1>{{ title|capfirst }}</h1><p class="lede">Saved privately for your family.</p></section><section class="card edit"><form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Save record</button></form></section>{% endblock %}
