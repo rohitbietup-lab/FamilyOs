@@ -12,6 +12,7 @@ from django.utils.crypto import salted_hmac
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from .forms import FamilyForm, OwnerLoginForm, ProfileForm
 from .models import AuditEvent, Family, LoginThrottle, OwnerSession
+from .central import dashboard_data
 
 
 def audit(request, action):
@@ -80,6 +81,7 @@ def dashboard(request):
     return render(request, 'core/dashboard.html', {
         'family': request.owner_membership.family,
         'events': AuditEvent.objects.filter(family=request.owner_membership.family)[:6],
+        **dashboard_data(request),
     })
 
 

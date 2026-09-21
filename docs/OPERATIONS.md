@@ -65,8 +65,11 @@ The proxy must terminate HTTPS, overwrite X-Forwarded-Proto with the real scheme
 | `/api/v1/family/` | GET, POST | Read family; form-encoded name/mission/revision update with CSRF |
 | `/api/v1/audit/` | GET | Latest 100 family audit events |
 | `/api/v1/invitations/` | GET, POST | Always 403 for owner; enrollment disabled |
+| `/api/v1/summary/` | GET | Active INR asset/liability/net-worth totals as integer-paise strings; goal counts |
 
 Forms contain CSRF tokens. No bearer tokens or cross-origin access. Unsupported methods return 405, invalid fields 400, stale revisions 409. All private APIs use the same session as pages. Anonymous mutations may get CSRF 403 before auth is evaluated.
+
+Stage 2 record mutations use protected form routes described in [STAGE_2.md](STAGE_2.md). Financial details and goal text are never copied into audit payloads. Existing full-database backups include these new tables automatically.
 
 ## References and limits
 
