@@ -1,4 +1,6 @@
-# FamilyOS · Family Vault (V1.6)
+# FamilyOS · Family Vault (V1.6.1)
+
+V1.6.1 fixes PDF validation rejecting benign subset font names such as `/AAAAAA+LiberationSans`. Active PDF names remain blocked using complete PDF name tokens, including hexadecimal name escapes. Mandatory malware scanning and the existing PDF validity, encryption and page limits remain in place.
 
 Owner-only authentication and a persistent central foundation, starting from the repository's README-only baseline. This does not replace the older local/hosted prototypes.
 
