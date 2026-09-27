@@ -45,3 +45,7 @@ Deployment, real owner provisioning, MFA, password-recovery email, managed cloud
 ## Stage 2 first increment
 
 Following V1.4's merge, the next feature branch adds persistent asset/liability records and long-term goals to the Command Center. The scope and acceptance behavior are recorded in [STAGE_2.md](STAGE_2.md). This implements the first central data modules while keeping later integrations and enrollment deferred.
+
+## Stage 3 V1.6 Family Vault
+
+The original `FamilyOS_Development_Plan_v1.docx` was supplied on 27 September 2026. Stage 3 targets V1.6 and specifies private document storage followed by read-only website Gmail OAuth and incremental attachment ingestion. The implementation and acceptance details are in [V1_6_VAULT.md](V1_6_VAULT.md). This supersedes the earlier Vault deferral for this increment; family enrollment remains disabled.
