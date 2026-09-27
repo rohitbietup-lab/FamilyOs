@@ -1,8 +1,10 @@
-# FamilyOS · Central Dashboard (Stage 2)
+# FamilyOS · Family Vault (V1.6)
 
 Owner-only authentication and a persistent central foundation, starting from the repository's README-only baseline. This does not replace the older local/hosted prototypes.
 
-Included: private Command Center, persistent assets/liabilities and long-term goals, editable owner/family details, database sessions, CSRF protection, login throttling, session expiry/revocation, audit events, migrations, backups and tests. Invitations remain disabled. No Gmail or Vault integration is included.
+Included: private Command Center, persistent assets/liabilities and long-term goals, editable owner/family details, database sessions, CSRF protection, login throttling, session expiry/revocation, audit events, migrations, backups and tests. V1.6 adds an encrypted Family Vault, scanned uploads, document metadata and read-only Gmail attachment ingestion. Invitations remain disabled.
+
+The [V1.6 guide](docs/V1_6_VAULT.md) covers behavior, Gmail OAuth setup, mandatory document scanning, private storage, the sync worker and encrypted backup/restore. Live ingestion requires these operator settings and Google consent; the repository does not contain credentials or private documents.
 
 Finance records are entered manually in INR with a valuation date. The dashboard calculates assets minus liabilities using exact integer paise. Goals track manual progress, status and target dates. Edit conflicts are rejected; archive/restore keeps records recoverable. No real financial or family records are preloaded. Recurring tasks and reminders remain Stage 4 work.
 
@@ -33,6 +35,7 @@ $env:FAMILYOS_ENV = 'development'
 ./.venv/Scripts/python.exe manage.py makemigrations --check --dry-run
 ./.venv/Scripts/python.exe manage.py test --verbosity 2
 ./.venv/Scripts/python.exe scripts/verify_persistence.py
+./.venv/Scripts/python.exe scripts/verify_vault.py
 ```
 
 Tests use isolated databases and synthetic accounts. CI targets Windows/Linux with Python 3.10/3.12, including production checks. See [validation results](docs/VALIDATION.md), [the approved plan](docs/FamilyOS_Development_Plan.md), and [operations/security](docs/OPERATIONS.md).

@@ -1,0 +1,1 @@
+{% extends 'core/base.html' %}{% block title %}{{ title }} · FamilyOS{% endblock %}{% block content %}<section class="card"><h1>{{ title }}</h1><form method="post" {% if upload %}enctype="multipart/form-data"{% endif %}>{% csrf_token %}{{ form.as_p }}<button>Save</button> <a href="{% url 'vault' %}">Cancel</a></form></section>{% endblock %}

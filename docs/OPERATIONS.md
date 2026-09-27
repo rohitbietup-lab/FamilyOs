@@ -74,3 +74,6 @@ Stage 2 record mutations use protected form routes described in [STAGE_2.md](STA
 ## References and limits
 
 Built on [Django authentication](https://docs.djangoproject.com/en/5.2/topics/auth/default/), [sessions](https://docs.djangoproject.com/en/5.2/topics/http/sessions/) and the [deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/). MFA, email recovery, managed hosting, old data migration, Gmail and Vault are outside this release. Review deployment before storing real family data.
+# V1.6 Vault operations
+
+For installations with Vault data, follow [V1_6_VAULT.md](V1_6_VAULT.md) for private storage, scanner, OAuth, worker supervision and encrypted backup/restore. A database-only backup does not include document objects.

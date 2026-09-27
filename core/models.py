@@ -49,6 +49,11 @@ class AuditEvent(models.Model):
     def label(self):
         return {
             'owner.bootstrapped': 'Owner account created',
+            'vault.created': 'Document added', 'vault.updated': 'Document details updated',
+            'vault.archived': 'Document archived', 'vault.restored': 'Document restored',
+            'vault.viewed': 'Document viewed', 'vault.downloaded': 'Document downloaded',
+            'vault.person_added': 'Document member label added',
+            'vault.gmail_connected': 'Gmail connected', 'vault.gmail_disconnected': 'Gmail disconnected',
             'auth.login': 'Signed in', 'auth.logout': 'Signed out',
             'profile.updated': 'Owner profile updated', 'family.updated': 'Family details updated',
             'session.revoked': 'Session signed out', 'session.revoked_all': 'All sessions signed out',

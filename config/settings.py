@@ -23,7 +23,7 @@ CSRF_TRUSTED_ORIGINS = [v.strip() for v in os.environ.get(
 ).split(',') if v.strip()]
 INSTALLED_APPS = [
     'django.contrib.auth', 'django.contrib.contenttypes', 'django.contrib.sessions',
-    'django.contrib.messages', 'django.contrib.staticfiles', 'core',
+    'django.contrib.messages', 'django.contrib.staticfiles', 'core', 'vault',
 ]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -88,3 +88,14 @@ SECURE_REFERRER_POLICY = 'same-origin'
 X_FRAME_OPTIONS = 'DENY'
 DATA_UPLOAD_MAX_MEMORY_SIZE = 32 * 1024
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 20
+VAULT_KEY = os.environ.get('FAMILYOS_VAULT_KEY', '')
+VAULT_ROOT = os.environ.get('FAMILYOS_VAULT_ROOT', '')
+VAULT_MAX_BYTES = 10 * 1024 * 1024
+VAULT_CLAMD_HOST = os.environ.get('FAMILYOS_CLAMD_HOST', '')
+VAULT_CLAMD_PORT = int(os.environ.get('FAMILYOS_CLAMD_PORT', '3310'))
+GMAIL_CLIENT_ID = os.environ.get('FAMILYOS_GMAIL_CLIENT_ID', '')
+GMAIL_CLIENT_SECRET = os.environ.get('FAMILYOS_GMAIL_CLIENT_SECRET', '')
+GMAIL_REDIRECT_URI = os.environ.get('FAMILYOS_GMAIL_REDIRECT_URI', '')
+# Bound multipart upload memory and disk use before view-level validation.
+FILE_UPLOAD_HANDLERS = ['vault.uploads.BoundedUploadHandler']
+DATA_UPLOAD_MAX_NUMBER_FILES = 1

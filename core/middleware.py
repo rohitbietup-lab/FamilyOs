@@ -32,6 +32,7 @@ class PrivateAccessMiddleware:
         else:
             response = self.get_response(request)
         response['Cache-Control'] = 'no-store'
-        response['Content-Security-Policy'] = "default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+        if 'Content-Security-Policy' not in response:
+            response['Content-Security-Policy'] = "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self'; form-action 'self' https://accounts.google.com; base-uri 'none'; frame-ancestors 'none'"
         response['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
         return response

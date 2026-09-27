@@ -1,8 +1,9 @@
-from django.urls import path
+from django.urls import path, include
 from core import views
 from core import central
 
 urlpatterns = [
+    path('vault/', include('vault.urls')),
     path('', views.dashboard, name='dashboard'),
     path('login/', views.sign_in, name='login'),
     path('logout/', views.sign_out, name='logout'),
