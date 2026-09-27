@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+import re
 import socket
 import struct
 import uuid
@@ -11,6 +12,26 @@ from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
 from PIL import Image
 from pypdf import PdfReader
+
+
+# PDF names end at PDF whitespace or delimiters (not at a word boundary).
+_PDF_NAME = re.compile(rb'/[^\x00\x09\x0a\x0c\x0d\x20()<>\[\]{}/%]+')
+_PDF_NAME_ESCAPE = re.compile(rb'#([0-9a-fA-F]{2})')
+_PDF_ACTIVE_NAMES = frozenset((
+    b'/JavaScript', b'/JS', b'/Launch', b'/EmbeddedFile',
+    b'/OpenAction', b'/AA', b'/RichMedia',
+))
+
+
+def _has_active_pdf_name(data):
+    # Keep the conservative raw-file scan, but compare whole names so subset
+    # fonts such as /AAAAAA+LiberationSans do not match /AA. Decode #xx after
+    # tokenization: escaped delimiters belong to the name, not its boundary.
+    for match in _PDF_NAME.finditer(data):
+        name = _PDF_NAME_ESCAPE.sub(lambda escape: bytes.fromhex(escape[1].decode('ascii')), match[0])
+        if name in _PDF_ACTIVE_NAMES:
+            return True
+    return False
 
 
 class VaultError(Exception):
@@ -94,9 +115,8 @@ def validate(data, filename):
             if reader.is_encrypted or not 0 < len(reader.pages) <= 500:
                 raise ValueError()
             # Reject executable actions and embedded payloads rather than render them.
-            for marker in (b'/JavaScript', b'/JS', b'/Launch', b'/EmbeddedFile', b'/OpenAction', b'/AA', b'/RichMedia'):
-                if marker in data:
-                    raise ValueError()
+            if _has_active_pdf_name(data):
+                raise ValueError()
             return 'application/pdf'
         with warnings.catch_warnings():
             warnings.simplefilter('error', Image.DecompressionBombWarning)
