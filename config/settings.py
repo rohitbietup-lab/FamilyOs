@@ -96,6 +96,15 @@ VAULT_CLAMD_PORT = int(os.environ.get('FAMILYOS_CLAMD_PORT', '3310'))
 GMAIL_CLIENT_ID = os.environ.get('FAMILYOS_GMAIL_CLIENT_ID', '')
 GMAIL_CLIENT_SECRET = os.environ.get('FAMILYOS_GMAIL_CLIENT_SECRET', '')
 GMAIL_REDIRECT_URI = os.environ.get('FAMILYOS_GMAIL_REDIRECT_URI', '')
+# A private Google download keeps the client ID and secret paired. A configured
+# file takes precedence over individual credential variables (including old ones).
+GMAIL_CLIENT_FILE = os.environ.get('FAMILYOS_GMAIL_CLIENT_FILE', '')
+if not GMAIL_CLIENT_FILE and DEVELOPMENT and (data_dir / 'gmail-client.json').is_file():
+    GMAIL_CLIENT_FILE = str(data_dir / 'gmail-client.json')
+if GMAIL_CLIENT_FILE:
+    from .gmail_client import load_web_client
+    GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REDIRECT_URI = load_web_client(
+        GMAIL_CLIENT_FILE, GMAIL_REDIRECT_URI)
 # Bound multipart upload memory and disk use before view-level validation.
 FILE_UPLOAD_HANDLERS = ['vault.uploads.BoundedUploadHandler']
 DATA_UPLOAD_MAX_NUMBER_FILES = 1

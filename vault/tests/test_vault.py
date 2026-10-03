@@ -201,6 +201,16 @@ class VaultTests(TestCase):
             exchange.assert_not_called()
         self.assertFalse(GmailConnection.objects.exists())
 
+    def test_oauth_client_failure_shows_safe_actionable_message(self):
+        self.post('/vault/gmail/connect/')
+        state = self.client.session['gmail_oauth']
+        with patch('vault.gmail.exchange', side_effect=gmail.GmailError(401, 'invalid_client')):
+            response = self.client.get('/vault/gmail/callback/', {'state': state, 'code': 'private-code'}, follow=True)
+        self.assertContains(response, 'matching Web application client ID and secret')
+        self.assertNotContains(response, 'private-code')
+        self.assertFalse(GmailConnection.objects.exists())
+        self.assertFalse(OAuthAttempt.objects.exists())
+
     def test_disconnect_clears_tokens_preserves_documents(self):
         self.doc()
         connection = self.connection()

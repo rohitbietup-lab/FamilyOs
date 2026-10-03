@@ -186,7 +186,7 @@ def callback(request):
                 pass
     if (not pending or time.time()-pending['created'] > 600
             or not secrets.compare_digest(pending['state'], request.GET.get('state', ''))):
-        return HttpResponse('Invalid or expired Gmail connection request.', status=400)
+        return HttpResponse('Invalid or expired Gmail connection request. Open the Vault and start Connect Gmail again in the same browser.', status=400)
     if request.GET.get('error') or not request.GET.get('code'):
         messages.error(request, 'Gmail access was not granted.')
         return redirect('vault')
@@ -205,6 +205,8 @@ def callback(request):
             })
             audit(request, 'vault.gmail_connected')
         messages.success(request, 'Gmail connected with read-only access. Document import is queued.')
+    except gmail.GmailError as exc:
+        messages.error(request, str(exc))
     except VaultError:
         messages.error(request, 'Gmail could not be connected. Try connecting again.')
     return redirect('vault')

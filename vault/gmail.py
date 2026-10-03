@@ -1,6 +1,7 @@
 """Read-only Gmail transport. Provider bodies and tokens must never be logged."""
 import base64
 import hashlib
+import json
 import secrets
 import time
 from urllib.parse import urlencode, quote, urlsplit
@@ -14,9 +15,19 @@ API = 'https://gmail.googleapis.com/gmail/v1/users/me/'
 
 
 class GmailError(VaultError):
-    def __init__(self, status=0):
+    MESSAGES = {
+        'invalid_client': 'Google rejected the Gmail client credentials. Configure a matching Web application client ID and secret, then restart FamilyOS.',
+        'unauthorized_client': 'Google did not allow this Gmail client. Check the Web application client configuration.',
+        'invalid_grant': 'The Gmail authorization expired or could not be verified. Start Connect Gmail again from the Vault in the same browser.',
+        'redirect_uri_mismatch': 'The Gmail callback address does not match Google Cloud. Check the exact authorized redirect URI, including its trailing slash.',
+        'missing_scope': 'Gmail read-only access was not granted. Connect again and approve the requested Gmail permission.',
+        'missing_refresh_token': 'Google did not return offline Gmail access. Connect Gmail again and complete consent.',
+    }
+
+    def __init__(self, status=0, reason=''):
         self.status = status
-        super().__init__('Gmail is unavailable. Reconnect if access was revoked.')
+        self.reason = reason if isinstance(reason, str) and reason in self.MESSAGES else ''
+        super().__init__(self.MESSAGES.get(self.reason, 'Gmail is unavailable. Try connecting again.'))
 
 
 def configured():
@@ -46,13 +57,26 @@ def request_json(method, url, *, data=None, headers=None, params=None, limit=15_
         with requests.request(method, url, data=data, headers=headers, params=params,
                               timeout=(5, 30), allow_redirects=False, stream=True) as response:
             if response.status_code != 200:
+                # Only inspect bounded token errors; never retain provider prose,
+                # credentials or error_description in exceptions or messages.
+                if url == TOKEN_URL:
+                    payload = bytearray()
+                    for chunk in response.iter_content(4096):
+                        payload.extend(chunk)
+                        if len(payload) > 65536:
+                            raise GmailError(response.status_code)
+                    try:
+                        error = json.loads(payload)
+                    except ValueError:
+                        error = {}
+                    reason = error.get('error', '') if isinstance(error, dict) else ''
+                    raise GmailError(response.status_code, reason)
                 raise GmailError(response.status_code)
             payload = bytearray()
             for chunk in response.iter_content(65536):
                 payload.extend(chunk)
                 if len(payload) > limit:
                     raise GmailError()
-            import json
             result = json.loads(payload)
             if not isinstance(result, dict):
                 raise GmailError()
@@ -67,7 +91,11 @@ def exchange(code, verifier):
         'client_secret': settings.GMAIL_CLIENT_SECRET, 'redirect_uri': settings.GMAIL_REDIRECT_URI,
         'grant_type': 'authorization_code',
     }, limit=65536)
-    if not tokens.get('refresh_token') or not tokens.get('access_token') or SCOPE not in tokens.get('scope', '').split():
+    if not isinstance(tokens.get('scope'), str) or SCOPE not in tokens['scope'].split():
+        raise GmailError(reason='missing_scope')
+    if not isinstance(tokens.get('refresh_token'), str) or not tokens['refresh_token']:
+        raise GmailError(reason='missing_refresh_token')
+    if not isinstance(tokens.get('access_token'), str) or not tokens['access_token']:
         raise GmailError()
     return {'refresh_token': tokens['refresh_token']}
 

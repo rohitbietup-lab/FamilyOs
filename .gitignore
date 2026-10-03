@@ -10,3 +10,5 @@ staticfiles/
 .coverage
 htmlcov/
 *.log
+client_secret*.json
+gmail-client.json

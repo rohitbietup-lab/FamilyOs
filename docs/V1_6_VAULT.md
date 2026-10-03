@@ -31,6 +31,33 @@ Provider or scanner outages leave the checkpoint retryable and stored documents 
 
 No deployment, live Google consent, real document import or production scanner configuration is performed by this code release.
 
+### Gmail client download and troubleshooting
+
+Use a **Web application** client, not a Desktop client. For local use register exactly
+`http://localhost:8000/vault/gmail/callback/`, including the trailing slash. Download
+the client's JSON once and keep it private. Set `FAMILYOS_GMAIL_CLIENT_FILE` to its
+absolute path. In development only, `<FAMILYOS_DATA_DIR>/gmail-client.json` (by
+default `instance/gmail-client.json`) is also discovered automatically. Production
+requires the explicit file setting. Restrict the file's OS permissions to the
+account running FamilyOS; do not place it in static files or commit it.
+
+The file's paired ID and secret take precedence over the individual credential
+environment variables. A single registered redirect is selected automatically;
+an explicit `FAMILYOS_GMAIL_REDIRECT_URI` must match a registered URI exactly.
+For multiple registered URIs, that variable is required. Desktop, malformed,
+missing explicit files and mismatched redirects fail at startup without printing
+file contents. The original environment-only setup still works without a file.
+Restart both the web server and Gmail worker after changing configuration.
+
+Start connections from the Vault in the same browser and use the same hostname
+throughout (`localhost` and `127.0.0.1` have different session cookies). Do not
+refresh an old callback URL. Invalid or expired state remains rejected. Known
+Google token errors now show fixed guidance for rejected credentials, expired
+authorization and redirect mismatch; arbitrary provider text, tokens and secrets
+are never included in those messages. Missing Gmail scope or offline access has
+separate reconnect guidance. A successful redirect alone does not establish that
+the token exchange succeeded.
+
 ## Backup and recovery
 
 Use `python manage.py backup_vault <external-backup.enc>` for V1.6. It snapshots SQLite, authenticates every referenced immutable object and encrypts the combined archive. Keep the encryption key separately. The legacy `backup_database` command is insufficient by itself for Vault recovery. The backup command currently builds the encrypted archive in memory; provision memory for several times the database and stored encrypted document size, and schedule backups appropriately for a small single-family installation. Its intermediate SQLite snapshot uses the operating system temporary directory, which must be on encrypted storage with restricted permissions.
