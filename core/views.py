@@ -16,7 +16,7 @@ from .central import dashboard_data
 
 
 def audit(request, action):
-    AuditEvent.objects.create(actor=request.user, family=request.owner_membership.family, action=action)
+    AuditEvent.objects.create(actor=request.user, family=request.family_membership.family, action=action)
 
 
 def consume_login_attempt(request):
@@ -46,10 +46,10 @@ def consume_login_attempt(request):
 
 @require_http_methods(['GET', 'POST'])
 def sign_in(request):
-    if request.owner_membership:
+    if request.family_membership:
         return redirect('dashboard')
     if request.method == 'POST' and not consume_login_attempt(request):
-        response = render(request, 'core/login.html', {'form': OwnerLoginForm(request), 'throttled': True}, status=429)
+        response = render(request, 'core/login.html', {'form': OwnerLoginForm(request), 'throttled': True, 'enrollment_enabled':settings.FAMILY_ENROLLMENT_ENABLED}, status=429)
         response['Retry-After'] = '900'
         return response
     form = OwnerLoginForm(request, data=request.POST if request.method == 'POST' else None)
@@ -64,7 +64,7 @@ def sign_in(request):
                 AuditEvent.objects.create(actor=request.user, family=request.user.membership.family, action='auth.login')
             return redirect('dashboard')
         AuditEvent.objects.create(action='auth.login_failed')
-    return render(request, 'core/login.html', {'form': form}, status=200 if request.method == 'GET' else 400)
+    return render(request, 'core/login.html', {'form': form, 'enrollment_enabled':settings.FAMILY_ENROLLMENT_ENABLED}, status=200 if request.method == 'GET' else 400)
 
 
 @require_POST
@@ -95,7 +95,7 @@ def profile(request):
             audit(request, 'profile.updated')
         messages.success(request, 'Your profile has been saved.')
         return redirect('profile')
-    return render(request, 'core/edit.html', {'form': form, 'title': 'Owner profile', 'description': 'Update your name. Your sign-in email is managed locally by the operator.'})
+    return render(request, 'core/edit.html', {'form': form, 'title': 'Your profile', 'description': 'Update your name. Your sign-in email is managed locally by the operator.', 'password_link':True})
 
 
 def save_family(request, form):
@@ -162,6 +162,7 @@ def api_me(request):
 
 @require_http_methods(['GET', 'POST'])
 def api_family(request):
+    from .enrollment import enrollment_ready
     family = request.owner_membership.family
     if request.method == 'POST':
         # Form-encoded writes use the same validation and CSRF contract as the UI.
@@ -171,7 +172,7 @@ def api_family(request):
         if not save_family(request, form):
             return JsonResponse({'error': 'Revision conflict. Reload before retrying.'}, status=409)
         family.refresh_from_db()
-    return JsonResponse({'id': family.pk, 'name': family.name, 'mission': family.mission, 'revision': family.revision, 'enrollment_enabled': False})
+    return JsonResponse({'id': family.pk, 'name': family.name, 'mission': family.mission, 'revision': family.revision, 'enrollment_enabled': enrollment_ready()})
 
 
 @require_GET

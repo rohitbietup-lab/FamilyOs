@@ -1,5 +1,10 @@
 # Authentication and persistent data operations
 
+Stage 5 adds optional controlled adult access; see [STAGE_5.md](STAGE_5.md).
+The owner-only defaults below remain the live configuration until enrollment is
+deliberately enabled after SMTP/HTTPS setup. When enabled, adults receive only
+assigned task access and explicitly granted documents, not owner administration.
+
 ## Access boundaries
 
 Every application route except login/static assets requires an authenticated active User, active owner Membership and tracked unexpired session. Staff/superuser status does not bypass this. Anonymous pages redirect to login; APIs return 401. The database enforces one Family and one owner membership. Future roles have no access in this release.

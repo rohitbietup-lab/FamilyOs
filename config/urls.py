@@ -1,9 +1,22 @@
 from django.urls import path, include
 from core import views
 from core import central
+from core import member_views, enrollment_views
 from vault import tasks
 
 urlpatterns = [
+    path('my/',member_views.home,name='member-home'),
+    path('my/tasks/',member_views.tasks,name='member-tasks'),
+    path('my/tasks/<uuid:task_id>/complete/',member_views.task_complete,name='member-task-complete'),
+    path('my/documents/',member_views.documents,name='member-documents'),
+    path('members/',enrollment_views.members,name='members'),
+    path('members/invite/',enrollment_views.invite,name='member-invite'),
+    path('members/invitations/<uuid:invitation_id>/revoke/',enrollment_views.revoke_invite,name='invitation-revoke'),
+    path('members/<int:member_id>/disable/',enrollment_views.disable_member,name='member-disable'),
+    path('members/documents/share/',enrollment_views.share_document,name='document-share'),
+    path('members/grants/<int:grant_id>/revoke/',enrollment_views.revoke_grant,name='document-unshare'),
+    path('join/',enrollment_views.join,name='join'),
+    path('password/change/',enrollment_views.password_change,name='password-change'),
     path('tasks/', tasks.task_list, name='task-list'),
     path('tasks/new/', tasks.task_edit, name='task-new'),
     path('tasks/<uuid:task_id>/edit/', tasks.task_edit, name='task-edit'),

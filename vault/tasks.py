@@ -49,7 +49,7 @@ class TaskForm(RevisionForm):
         super().__init__(*args, **kwargs)
         self.fields['assignee'].queryset = FamilyPerson.objects.filter(family_id=family_id, archived=False)
         self.fields['assignee'].label_from_instance = lambda person: person.name
-        self.fields['assignee'].help_text = 'A family member label only. This does not grant sign-in access.'
+        self.fields['assignee'].help_text = 'Labels alone do not grant sign-in. Assigning a linked adult shares this task title and notes; source documents and evidence require a separate document share.'
 
     def clean(self):
         values = super().clean()
@@ -180,6 +180,10 @@ def task_edit(request, task_id=None):
 @require_POST
 def task_complete(request, task_id):
     task = get_object_or_404(visible_tasks(request), pk=task_id)
+    return complete_task(request, task, visible_tasks(request), 'task-list')
+
+
+def complete_task(request, task, allowed, redirect_name):
     form = RevisionForm(request.POST)
     if not form.is_valid() or request.POST.get('completed') not in ('0', '1'):
         return HttpResponse('Invalid task update.', status=400)
@@ -190,7 +194,7 @@ def task_complete(request, task_id):
     except (ValueError, OverflowError):
         return HttpResponse('The repeat schedule exceeds the supported date range. Edit the schedule first.', status=400)
     with transaction.atomic():
-        changed = visible_tasks(request).filter(pk=task.pk, revision=form.cleaned_data['revision'],completed=not completed).update(
+        changed = allowed.filter(pk=task.pk, revision=form.cleaned_data['revision'],completed=not completed).update(
             completed=False if recurring else completed, due_on=due, revision=F('revision')+1, updated_at=timezone.now())
         if changed:
             if completed:
@@ -201,4 +205,4 @@ def task_complete(request, task_id):
         return HttpResponse('This task changed. Reload before trying again.', status=409)
     if recurring:
         messages.success(request, 'Occurrence completed. The task now shows its next scheduled date.')
-    return redirect('task-list')
+    return redirect(redirect_name)

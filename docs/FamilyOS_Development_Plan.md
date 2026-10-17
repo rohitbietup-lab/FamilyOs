@@ -68,3 +68,11 @@ personal task access, verified-address invitations and staged authorization test
 This is a proposed design; invitations and non-owner access remain disabled.
 Gmail full-sync completion and incremental-refresh verification are still open
 operational items rather than prerequisites claimed as completed.
+
+## Stage 5 first implementation
+
+[STAGE_5.md](STAGE_5.md) records the adult invitation lifecycle, personal tasks,
+explicit document shares and revocation controls. The implementation is tested
+and installed locally with enrollment disabled. Verified SMTP delivery and a public
+HTTPS deployment remain activation prerequisites; no real adult was enrolled.
+Children/dependents and financial sharing are excluded from this first release.

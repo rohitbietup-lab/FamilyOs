@@ -30,6 +30,7 @@ class Membership(models.Model):
     family = models.ForeignKey(Family, on_delete=models.PROTECT)
     role = models.CharField(max_length=16, choices=Role.choices)
     active = models.BooleanField(default=True)
+    person = models.OneToOneField('vault.FamilyPerson', null=True, blank=True, on_delete=models.PROTECT)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -49,6 +50,10 @@ class AuditEvent(models.Model):
     def label(self):
         return {
             'owner.bootstrapped': 'Owner account created',
+            'invitation.sent': 'Adult invitation sent', 'invitation.accepted': 'Adult joined the family',
+            'invitation.revoked': 'Invitation revoked', 'member.disabled': 'Adult access disabled',
+            'document.granted': 'Document shared', 'document.revoked': 'Document share revoked',
+            'auth.password_changed': 'Password changed',
             'task.created': 'Document task created', 'task.updated': 'Document task updated',
             'task.completed': 'Document task completed', 'task.reopened': 'Document task reopened',
             'vault.created': 'Document added', 'vault.updated': 'Document details updated',
@@ -87,16 +92,24 @@ class LoginThrottle(models.Model):
 
 
 class Invitation(models.Model):
-    """Schema reserved for Stage 5; no issuance, token, or acceptance path in V1.4."""
+    """Email-bound invitations; live enrollment requires the delivery/HTTPS gate."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     family = models.ForeignKey(Family, on_delete=models.PROTECT)
     email = models.EmailField()
     role = models.CharField(max_length=16, choices=Role.choices)
     status = models.CharField(max_length=16, default='disabled', editable=False)
     created_at = models.DateTimeField(default=timezone.now)
+    token_digest = models.CharField(max_length=64, null=True, unique=True)
+    verification_digest = models.CharField(max_length=64, blank=True)
+    person = models.ForeignKey('vault.FamilyPerson', null=True, blank=True, on_delete=models.PROTECT)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    accepted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        constraints = [models.CheckConstraint(condition=Q(status='disabled'), name='invitations_disabled')]
+        constraints = [models.CheckConstraint(condition=Q(status__in=['disabled','pending','accepted','revoked','expired']), name='valid_invitation_state'),
+            models.CheckConstraint(condition=~Q(status__in=['pending','accepted']) | Q(role='adult',person__isnull=False,token_digest__isnull=False,expires_at__isnull=False), name='invitation_has_identity'),
+            models.CheckConstraint(condition=~Q(status='pending') | ~Q(verification_digest=''), name='pending_invite_has_verification')]
 
 
 class FamilyRecord(models.Model):

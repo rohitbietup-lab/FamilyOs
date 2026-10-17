@@ -1,17 +1,19 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
-from .models import Family, Membership, Role
+from .models import Family, Membership
+from .access import eligible_member
 
 
 class OwnerLoginForm(AuthenticationForm):
-    username = forms.EmailField(label='Owner email', max_length=150, widget=forms.EmailInput(attrs={'autocomplete': 'username', 'autofocus': True}))
+    username = forms.EmailField(label='Email', max_length=150, widget=forms.EmailInput(attrs={'autocomplete': 'username', 'autofocus': True}))
 
     def clean_username(self):
         return self.cleaned_data['username'].strip().lower()
 
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
-        if not Membership.objects.filter(user=user, active=True, role=Role.OWNER).exists():
+        member = Membership.objects.filter(user=user,active=True).select_related('user','person').first()
+        if not eligible_member(member):
             raise self.get_invalid_login_error()
 
 
