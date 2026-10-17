@@ -79,7 +79,7 @@ class OAuthAttempt(models.Model):
 
 
 class DocumentTask(FamilyRecord):
-    source_document = models.ForeignKey(Document, on_delete=models.PROTECT)
+    source_document = models.ForeignKey(Document, on_delete=models.PROTECT, null=True, blank=True)
     # Stable review keys prevent repeated generation from duplicating work.
     kind = models.CharField(max_length=80)
     details = models.TextField()
@@ -87,7 +87,24 @@ class DocumentTask(FamilyRecord):
     source_date = models.DateField(null=True, blank=True)
     due_on = models.DateField(null=True, blank=True)
     completed = models.BooleanField(default=False)
+    assignee = models.ForeignKey(FamilyPerson, on_delete=models.PROTECT, null=True, blank=True)
+    recurrence = models.CharField(max_length=8, default='none', choices=[
+        ('none', 'Does not repeat'), ('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('yearly', 'Yearly')])
+    recurrence_day = models.PositiveSmallIntegerField(null=True, blank=True)
+    remind_days = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         ordering = ['completed', 'created_at', 'id']
-        constraints = [models.UniqueConstraint(fields=['family', 'kind'], name='unique_family_document_task')]
+        constraints = [models.UniqueConstraint(fields=['family', 'kind'], name='unique_family_document_task'),
+            models.CheckConstraint(condition=Q(recurrence='none') | Q(recurrence__in=['daily','weekly','monthly','yearly'], due_on__isnull=False, recurrence_day__isnull=False, recurrence_day__gte=1, recurrence_day__lte=31), name='valid_task_recurrence'),
+            models.CheckConstraint(condition=Q(remind_days__lte=30), name='valid_task_remind_days')]
+
+
+class TaskCompletion(models.Model):
+    task = models.ForeignKey(DocumentTask, on_delete=models.PROTECT, related_name='completions')
+    scheduled_on = models.DateField(null=True)
+    revision = models.PositiveIntegerField()
+    completed_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['task','revision'], name='unique_task_completion_revision')]

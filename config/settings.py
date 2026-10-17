@@ -63,6 +63,7 @@ AUTH_PASSWORD_VALIDATORS = [
 PASSWORD_HASHERS = ['django.contrib.auth.hashers.PBKDF2PasswordHasher']
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
+TASK_TIME_ZONE = os.environ.get('FAMILYOS_TIME_ZONE', 'Asia/Kolkata')
 USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'

@@ -49,3 +49,13 @@ Following V1.4's merge, the next feature branch adds persistent asset/liability 
 ## Stage 3 V1.6 Family Vault
 
 The original `FamilyOS_Development_Plan_v1.docx` was supplied on 27 September 2026. Stage 3 targets V1.6 and specifies private document storage followed by read-only website Gmail OAuth and incremental attachment ingestion. The implementation and acceptance details are in [V1_6_VAULT.md](V1_6_VAULT.md). This supersedes the earlier Vault deferral for this increment; family enrollment remains disabled.
+
+## Stage 4 first increment: tasks, schedules and in-app reminders
+
+Document tasks and Gmail reliability changes were merged in PRs #6 and #7.
+The next increment adds manual responsibilities, family-person labels, repeat
+schedules, occurrence history and in-app reminders. Acceptance and limits are in
+[STAGE_4.md](STAGE_4.md). Task assignment labels do not enroll family members or
+grant access. Full Gmail import completion remains an operational verification
+item; building this task increment does not claim that import has completed.
+Outbound notifications and family-account enrollment remain later work.

@@ -5,6 +5,7 @@ from vault import tasks
 
 urlpatterns = [
     path('tasks/', tasks.task_list, name='task-list'),
+    path('tasks/new/', tasks.task_edit, name='task-new'),
     path('tasks/<uuid:task_id>/edit/', tasks.task_edit, name='task-edit'),
     path('tasks/<uuid:task_id>/complete/', tasks.task_complete, name='task-complete'),
     path('vault/', include('vault.urls')),

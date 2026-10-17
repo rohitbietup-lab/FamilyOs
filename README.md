@@ -11,7 +11,7 @@ Included: private Command Center, persistent assets/liabilities and long-term go
 
 The [V1.6 guide](docs/V1_6_VAULT.md) covers behavior, Gmail OAuth setup, mandatory document scanning, private storage, the sync worker and encrypted backup/restore. Live ingestion requires these operator settings and Google consent; the repository does not contain credentials or private documents.
 
-Finance records are entered manually in INR with a valuation date. The dashboard calculates assets minus liabilities using exact integer paise. Goals track manual progress, status and target dates. Edit conflicts are rejected; archive/restore keeps records recoverable. No real financial or family records are preloaded. Recurring tasks and reminders remain Stage 4 work.
+Finance records are entered manually in INR with a valuation date. The dashboard calculates assets minus liabilities using exact integer paise. Goals track manual progress, status and target dates. Edit conflicts are rejected; archive/restore keeps records recoverable. No real financial or family records are preloaded. The [Stage 4 task increment](docs/STAGE_4.md) adds manual tasks, repeat schedules, assignment labels and in-app reminders. Family-account enrollment remains Stage 5 work.
 
 If upgrading from V1.4, back up first and run `manage.py migrate`; migration 0002 adds the new tables without replacing existing accounts or family data. The [Stage 2 acceptance record](docs/STAGE_2.md) explains scope and data semantics.
 
