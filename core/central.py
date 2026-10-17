@@ -28,8 +28,10 @@ def finance_summary(records):
 
 
 def dashboard_data(request):
+    from vault.tasks import reminder_summary
     goals = scoped(request, Goal).filter(archived=False)
     return {
+        'task_reminders': reminder_summary(request),
         'finance': finance_summary(scoped(request, FinancialRecord)),
         'active_goals': goals.filter(status=Goal.Status.ACTIVE).count(),
         'completed_goals': goals.filter(status=Goal.Status.COMPLETED).count(),

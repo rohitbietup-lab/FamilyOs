@@ -1,5 +1,8 @@
 # Document task list
 
+This records the initial document-task foundation. [Stage 4](STAGE_4.md) extends
+it with manual tasks, assignment labels, repeating schedules and in-app reminders.
+
 `/tasks/` provides an owner-only task list linked from the main navigation.
 Reviewed tasks cite an existing Vault document, an optional page and supporting
 evidence. Source dates are displayed separately from user-confirmed task due
