@@ -367,6 +367,29 @@ class VaultTests(TestCase):
         self.assertEqual(storage.read_object(Document.objects.get()), png())
 
     @patch('vault.sync.GmailClient')
+    def test_deleted_attachment_does_not_block_page(self, client_type):
+        connection = self.connection()
+        client = client_type.return_value
+        client.get.side_effect = [{'historyId': '100'}, {'messages': [{'id': 'a'}]}]
+        client.message.return_value = {'payload': {'parts': [{'filename': 'policy.pdf',
+            'body': {'attachmentId': 'removed', 'size': 100}}]}}
+        client.attachment.side_effect = gmail.GmailError(404)
+        run_page()
+        connection.refresh_from_db()
+        self.assertEqual(connection.status, 'ready')
+        self.assertEqual(connection.skipped, 1)
+        self.assertFalse(Document.objects.exists())
+
+    @patch('vault.sync.GmailClient')
+    def test_sync_error_log_contains_no_exception_prose(self, client_type):
+        self.connection()
+        client_type.return_value.get.side_effect = ValueError('private-token-canary')
+        with self.assertLogs('vault.sync', level='WARNING') as logs:
+            run_page()
+        self.assertIn('type=ValueError http_status=0', logs.output[0])
+        self.assertNotIn('private-token-canary', ''.join(logs.output))
+
+    @patch('vault.sync.GmailClient')
     def test_active_worker_lease_is_not_stolen(self, client_type):
         self.connection(lease_until=timezone.now()+timedelta(minutes=5))
         self.assertFalse(run_page())

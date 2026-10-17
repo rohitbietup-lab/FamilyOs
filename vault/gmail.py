@@ -100,9 +100,20 @@ def exchange(code, verifier):
     return {'refresh_token': tokens['refresh_token']}
 
 
+def retry_request_json(method, url, **kwargs):
+    """Only used for read-only requests and refresh-token grants, never consent."""
+    for attempt in range(3):
+        try:
+            return request_json(method, url, **kwargs)
+        except GmailError as exc:
+            if attempt == 2 or exc.status not in (0, 429, 500, 502, 503, 504):
+                raise
+            time.sleep(2 ** attempt)
+
+
 class GmailClient:
     def __init__(self, credentials):
-        tokens = request_json('POST', TOKEN_URL, data={
+        tokens = retry_request_json('POST', TOKEN_URL, data={
             'client_id': settings.GMAIL_CLIENT_ID, 'client_secret': settings.GMAIL_CLIENT_SECRET,
             'refresh_token': credentials['refresh_token'], 'grant_type': 'refresh_token',
         }, limit=65536)
@@ -111,7 +122,7 @@ class GmailClient:
         self.headers = {'Authorization': 'Bearer ' + tokens['access_token']}
 
     def get(self, resource, **params):
-        return request_json('GET', API + resource, headers=self.headers, params=params)
+        return retry_request_json('GET', API + resource, headers=self.headers, params=params)
 
     def message(self, message_id):
         return self.get('messages/' + quote(message_id, safe=''), format='full')

@@ -11,6 +11,25 @@ from vault import gmail
 
 
 class GmailSetupTests(SimpleTestCase):
+    @patch('vault.gmail.time.sleep')
+    def test_transient_requests_retry_with_a_bound(self, sleep):
+        for status in (0, 429, 500, 502, 503, 504):
+            with self.subTest(status=status), patch('vault.gmail.request_json', side_effect=[
+                gmail.GmailError(status), gmail.GmailError(status), {'ok': True}]) as request:
+                self.assertEqual(gmail.retry_request_json('GET', gmail.API+'profile'), {'ok': True})
+                self.assertEqual(request.call_count, 3)
+        with patch('vault.gmail.request_json', side_effect=gmail.GmailError(503)) as request:
+            with self.assertRaises(gmail.GmailError):
+                gmail.retry_request_json('GET', gmail.API+'profile')
+            self.assertEqual(request.call_count, 3)
+
+    def test_permanent_errors_do_not_retry(self):
+        for status in (400, 401, 403, 404):
+            with self.subTest(status=status), patch('vault.gmail.request_json', side_effect=gmail.GmailError(status)) as request:
+                with self.assertRaises(gmail.GmailError):
+                    gmail.retry_request_json('GET', gmail.API+'profile')
+                self.assertEqual(request.call_count, 1)
+
     def load(self, document, uri=''):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'client.json'
