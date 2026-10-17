@@ -1,5 +1,6 @@
 import base64
 import binascii
+import logging
 import uuid
 from pathlib import PurePosixPath
 from datetime import timedelta
@@ -11,6 +12,8 @@ from .gmail import GmailClient, GmailError
 from .models import GmailConnection
 from .services import classify, ingest
 from .storage import VaultError, RejectedFile, unseal, seal
+
+logger = logging.getLogger(__name__)
 
 
 class LeaseLost(VaultError):
@@ -70,7 +73,13 @@ def import_message(client, connection, message_id):
             continue
         renew(connection)
         if body.get('attachmentId'):
-            body = client.attachment(message_id, body['attachmentId'])
+            try:
+                body = client.attachment(message_id, body['attachmentId'])
+            except GmailError as exc:
+                if exc.status == 404:
+                    skipped += 1
+                    continue
+                raise
         encoded = body.get('data', '')
         if len(encoded) > (settings.VAULT_MAX_BYTES * 4 // 3) + 8:
             skipped += 1
@@ -140,7 +149,12 @@ def run_page():
                 values.update(history_id=connection.baseline_history if connection.full_sync else result['historyId'],
                               full_sync=False, baseline_history='', requested=False, last_success=timezone.now(), status='ready')
             held(connection).update(**values)
-    except (VaultError, KeyError, TypeError, ValueError, OSError):
+    except (VaultError, KeyError, TypeError, ValueError, OSError) as exc:
+        # Never log exception prose, provider bodies, filenames, IDs or tokens.
+        if not isinstance(exc, LeaseLost):
+            logger.warning('Gmail sync stopped: type=%s http_status=%s reason=%s', type(exc).__name__,
+                           exc.status if isinstance(exc, GmailError) else 0,
+                           exc.reason if isinstance(exc, GmailError) else '')
         # Preserve checkpoint; replay is safe because content hashes are unique.
         held(connection).update(status='error', requested=False, lease=None, lease_until=None)
     return True
