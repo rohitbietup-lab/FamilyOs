@@ -106,7 +106,7 @@ class GmailClient:
             'client_id': settings.GMAIL_CLIENT_ID, 'client_secret': settings.GMAIL_CLIENT_SECRET,
             'refresh_token': credentials['refresh_token'], 'grant_type': 'refresh_token',
         }, limit=65536)
-        if not tokens.get('access_token'):
+        if not isinstance(tokens.get('access_token'), str) or not tokens['access_token']:
             raise GmailError()
         self.headers = {'Authorization': 'Bearer ' + tokens['access_token']}
 

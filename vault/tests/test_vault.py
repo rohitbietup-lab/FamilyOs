@@ -305,6 +305,40 @@ class VaultTests(TestCase):
         self.assertFalse(Document.objects.exists())
 
     @patch('vault.sync.GmailClient')
+    def test_subject_does_not_qualify_unrelated_attachments(self, client_type):
+        self.connection()
+        client = client_type.return_value
+        client.get.side_effect = [{'historyId': '100'}, {'messages': [{'id': 'a'}]}]
+        client.message.return_value = {'payload': {'headers': [{'name': 'Subject', 'value': 'Insurance policy'}],
+            'parts': [{'filename': name, 'body': {'attachmentId': name}} for name in
+                      ('logo.png', 'banner.jpg', 'document.pdf', 'policy.exe')]}}
+        run_page()
+        client.attachment.assert_not_called()
+        self.assertFalse(Document.objects.exists())
+
+    @patch('vault.sync.GmailClient')
+    def test_incremental_spam_trash_and_drafts_are_not_imported(self, client_type):
+        self.connection(full_sync=False, history_id='100')
+        client = client_type.return_value
+        client.get.return_value = {'history': [{'messagesAdded': [{'message': {'id': str(i)}} for i in range(3)]}], 'historyId': '101'}
+        client.message.side_effect = [dict(self.message(), labelIds=[label]) for label in ('SPAM', 'TRASH', 'DRAFT')]
+        run_page()
+        client.attachment.assert_not_called()
+        self.assertFalse(Document.objects.exists())
+
+    @patch('vault.sync.GmailClient')
+    def test_attachment_download_and_underscore_filename(self, client_type):
+        self.connection()
+        client = client_type.return_value
+        client.get.side_effect = [{'historyId': '100'}, {'messages': [{'id': 'a'}]}]
+        client.message.return_value = {'payload': {'parts': [{'filename': 'annual_bank_statement.png',
+            'body': {'size': len(png()), 'attachmentId': 'attachment'}}]}}
+        client.attachment.return_value = {'data': base64.urlsafe_b64encode(png()).decode()}
+        run_page()
+        client.attachment.assert_called_once_with('a', 'attachment')
+        self.assertEqual(storage.read_object(Document.objects.get()), png())
+
+    @patch('vault.sync.GmailClient')
     def test_active_worker_lease_is_not_stolen(self, client_type):
         self.connection(lease_until=timezone.now()+timedelta(minutes=5))
         self.assertFalse(run_page())
