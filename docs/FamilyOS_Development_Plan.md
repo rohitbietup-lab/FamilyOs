@@ -59,3 +59,12 @@ schedules, occurrence history and in-app reminders. Acceptance and limits are in
 grant access. Full Gmail import completion remains an operational verification
 item; building this task increment does not claim that import has completed.
 Outbound notifications and family-account enrollment remain later work.
+
+## Stage 5 design checkpoint
+
+PR #8 merged the Stage 4 first increment. The next design is recorded in
+[STAGE_5_DESIGN.md](STAGE_5_DESIGN.md): adult enrollment, explicit document grants,
+personal task access, verified-address invitations and staged authorization tests.
+This is a proposed design; invitations and non-owner access remain disabled.
+Gmail full-sync completion and incremental-refresh verification are still open
+operational items rather than prerequisites claimed as completed.
