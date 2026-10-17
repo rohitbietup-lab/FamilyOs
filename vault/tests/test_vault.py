@@ -89,6 +89,34 @@ class VaultTests(TestCase):
         doc.refresh_from_db()
         self.assertTrue(doc.archived)
 
+    def test_category_groups_counts_and_filter_links(self):
+        self.doc()
+        ingest(family_id=self.family.pk, data=png('blue'), name='passport.png', category='identity')
+        ingest(family_id=self.family.pk, data=png('red'), name='image001.png', category='other')
+        response = self.client.get('/vault/?category=insurance&page=99')
+        groups = {group['value']: group for group in response.context['category_groups']}
+        self.assertEqual(groups['insurance']['count'], 1)
+        self.assertEqual(groups['identity']['count'], 1)
+        self.assertEqual(groups['property']['count'], 0)
+        self.assertEqual(groups['other']['label'], 'Other / Needs review')
+        self.assertEqual(groups['identity']['query'], 'category=identity')
+        self.assertEqual([group['value'] for group in response.context['document_groups']], ['insurance'])
+        self.assertContains(response, 'Browse by category')
+        self.assertNotContains(response, 'passport.png')
+
+    def test_category_counts_respect_archive_and_starred_filters(self):
+        doc = self.doc()
+        doc.archived = True
+        doc.starred = True
+        doc.save()
+        response = self.client.get('/vault/?archived=1&starred=1')
+        groups = {group['value']: group for group in response.context['category_groups']}
+        self.assertEqual(groups['insurance']['count'], 1)
+        self.assertIn('archived=1', groups['insurance']['query'])
+        self.assertIn('starred=1', groups['insurance']['query'])
+        response = self.client.get('/vault/')
+        self.assertEqual(sum(group['count'] for group in response.context['category_groups']), 0)
+
     def test_anonymous_and_nonowner_cannot_access_routes(self):
         doc = self.doc()
         paths = ['/vault/', '/vault/upload/', '/vault/people/new/', '/vault/gmail/callback/',
