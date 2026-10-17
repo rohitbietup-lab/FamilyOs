@@ -1,8 +1,12 @@
 from django.urls import path, include
 from core import views
 from core import central
+from vault import tasks
 
 urlpatterns = [
+    path('tasks/', tasks.task_list, name='task-list'),
+    path('tasks/<uuid:task_id>/edit/', tasks.task_edit, name='task-edit'),
+    path('tasks/<uuid:task_id>/complete/', tasks.task_complete, name='task-complete'),
     path('vault/', include('vault.urls')),
     path('', views.dashboard, name='dashboard'),
     path('login/', views.sign_in, name='login'),
