@@ -76,3 +76,18 @@ class OAuthAttempt(models.Model):
     session_digest = models.CharField(max_length=64)
     pending = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
+
+
+class DocumentTask(FamilyRecord):
+    source_document = models.ForeignKey(Document, on_delete=models.PROTECT)
+    # Stable review keys prevent repeated generation from duplicating work.
+    kind = models.CharField(max_length=80)
+    details = models.TextField()
+    source_page = models.PositiveSmallIntegerField(null=True, blank=True)
+    source_date = models.DateField(null=True, blank=True)
+    due_on = models.DateField(null=True, blank=True)
+    completed = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['completed', 'created_at', 'id']
+        constraints = [models.UniqueConstraint(fields=['family', 'kind'], name='unique_family_document_task')]

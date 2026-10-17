@@ -49,6 +49,8 @@ class AuditEvent(models.Model):
     def label(self):
         return {
             'owner.bootstrapped': 'Owner account created',
+            'task.created': 'Document task created', 'task.updated': 'Document task updated',
+            'task.completed': 'Document task completed', 'task.reopened': 'Document task reopened',
             'vault.created': 'Document added', 'vault.updated': 'Document details updated',
             'vault.archived': 'Document archived', 'vault.restored': 'Document restored',
             'vault.viewed': 'Document viewed', 'vault.downloaded': 'Document downloaded',
