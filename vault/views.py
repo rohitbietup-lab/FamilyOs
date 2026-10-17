@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from core.central import scoped
+from core.access import accessible_documents
 from core.models import AuditEvent
 from core.record_forms import RevisionForm
 from . import gmail
@@ -23,7 +24,7 @@ from .sync import request_sync
 
 
 def audit(request, action):
-    AuditEvent.objects.create(family_id=request.owner_membership.family_id, actor=request.user, action=action)
+    AuditEvent.objects.create(family_id=request.family_membership.family_id, actor=request.user, action=action)
 
 
 @require_GET
@@ -123,7 +124,7 @@ def edit(request, document_id):
 
 @require_GET
 def download(request, document_id, inline=False):
-    document = get_object_or_404(scoped(request, Document), pk=document_id)
+    document = get_object_or_404(accessible_documents(request.family_membership), pk=document_id)
     try:
         data = read_object(document)
         details = unseal(document.details)

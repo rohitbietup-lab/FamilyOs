@@ -1,5 +1,9 @@
 # FamilyOS · Family Vault (V1.6.1)
 
+The [Stage 5 first release](docs/STAGE_5.md) adds controlled adult invitations,
+personal tasks and explicit document sharing. Live enrollment stays disabled
+until private SMTP delivery and public HTTPS prerequisites are configured.
+
 Windows launcher/startup supervision and Gmail resume findings are documented in
 [the 17 October verification record](docs/RESUME_2026_10_17.md).
 

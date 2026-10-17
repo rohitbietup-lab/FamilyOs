@@ -64,6 +64,16 @@ PASSWORD_HASHERS = ['django.contrib.auth.hashers.PBKDF2PasswordHasher']
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 TASK_TIME_ZONE = os.environ.get('FAMILYOS_TIME_ZONE', 'Asia/Kolkata')
+FAMILY_ENROLLMENT_ENABLED = os.environ.get('FAMILYOS_FAMILY_ENROLLMENT') == 'enabled'
+FAMILY_PUBLIC_ORIGIN = os.environ.get('FAMILYOS_PUBLIC_ORIGIN', '')
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('FAMILYOS_SMTP_HOST', '')
+EMAIL_PORT = int(os.environ.get('FAMILYOS_SMTP_PORT', '587'))
+EMAIL_HOST_USER = os.environ.get('FAMILYOS_SMTP_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('FAMILYOS_SMTP_PASSWORD', '')
+EMAIL_USE_TLS = True
+EMAIL_TIMEOUT = 15
+DEFAULT_FROM_EMAIL = os.environ.get('FAMILYOS_FROM_EMAIL', '')
 USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'

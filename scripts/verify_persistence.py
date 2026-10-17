@@ -21,17 +21,28 @@ with tempfile.TemporaryDirectory(prefix='familyos-verify-') as directory:
     run(['migrate', 'sessions', '--noinput'], env)
     run(['migrate', 'core', '0001', '--noinput'], env)
     run(['shell', '-c', '''
-from unittest.mock import patch
-from django.core.management import call_command
+from datetime import timedelta
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
+from django.contrib.auth import get_user_model
 from django.test import Client
-with patch('core.management.commands.bootstrap_owner.getpass', return_value='Synthetic-only-password-739!'):
-    call_command('bootstrap_owner', email='owner@example.test', name='Test owner', family='Test family')
-c = Client()
-assert c.post('/login/', {'username':'owner@example.test','password':'Synthetic-only-password-739!'}).status_code == 302
-assert c.post('/profile/', {'display_name':'Saved owner'}).status_code == 302
-assert c.post('/api/v1/family/', {'name':'Persisted family','mission':'Across restarts','revision':1}).status_code == 200
+from django.utils import timezone
 from pathlib import Path
 from django.conf import settings
+# Seed through historical models: current Membership now has Stage 5 columns
+# that must not be queried before the upgrade has run.
+state = MigrationExecutor(connection).loader.project_state([('core','0001_initial')]).apps
+Family = state.get_model('core','Family')
+Membership = state.get_model('core','Membership')
+TrackedSession = state.get_model('core','OwnerSession')
+Family.objects.create(name='Persisted family',mission='Across restarts',revision=2)
+user = get_user_model().objects.create_user(username='owner@example.test',email='owner@example.test',
+    first_name='Saved owner',password='Synthetic-only-password-739!')
+Membership.objects.create(user_id=user.pk,family_id=1,role='owner')
+c = Client()
+c.force_login(user)
+TrackedSession.objects.create(user_id=user.pk,session_key=c.session.session_key,
+    expires_at=timezone.now()+timedelta(hours=12))
 Path(settings.DATABASES['default']['NAME']).with_suffix('.session-test').write_text(c.cookies['familyos_session'].value)
 '''], env)
     run(['migrate', '--noinput'], env)

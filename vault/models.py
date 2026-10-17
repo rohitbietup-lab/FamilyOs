@@ -108,3 +108,13 @@ class TaskCompletion(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['task','revision'], name='unique_task_completion_revision')]
+
+
+class DocumentReadGrant(models.Model):
+    document = models.ForeignKey(Document, on_delete=models.PROTECT, related_name='read_grants')
+    membership = models.ForeignKey('core.Membership', on_delete=models.PROTECT)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['document','membership'], name='unique_document_read_grant')]

@@ -1,6 +1,8 @@
 # Stage 5 design: controlled family enrollment
 
-Status: proposed design, 17 October 2026. PR #8 is merged and Stage 4's first
+Status: first implementation completed with activation disabled; see
+[STAGE_5.md](STAGE_5.md) for delivered behavior, tests and remaining prerequisites.
+The design was recorded on 17 October 2026. PR #8 is merged and Stage 4's first
 increment is available locally. This document does not enable invitations,
 provision accounts, send messages or change existing access.
 

@@ -1,3 +1,3 @@
 {% extends 'core/base.html' %}{% block title %}{{ title }} · FamilyOS{% endblock %}
 {% block content %}<section class="welcome"><p class="eyebrow">Your foundation</p><h1>{{ title }}</h1><p class="lede">{{ description }}</p></section>
-<section class="card edit"><form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Save changes</button></form></section>{% endblock %}
+<section class="card edit"><form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Save changes</button></form>{% if password_link %}<p><a href="{% url 'password-change' %}">Change your password</a></p>{% endif %}</section>{% endblock %}
