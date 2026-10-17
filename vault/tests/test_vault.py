@@ -89,6 +89,34 @@ class VaultTests(TestCase):
         doc.refresh_from_db()
         self.assertTrue(doc.archived)
 
+    def test_category_groups_counts_and_filter_links(self):
+        self.doc()
+        ingest(family_id=self.family.pk, data=png('blue'), name='passport.png', category='identity')
+        ingest(family_id=self.family.pk, data=png('red'), name='image001.png', category='other')
+        response = self.client.get('/vault/?category=insurance&page=99')
+        groups = {group['value']: group for group in response.context['category_groups']}
+        self.assertEqual(groups['insurance']['count'], 1)
+        self.assertEqual(groups['identity']['count'], 1)
+        self.assertEqual(groups['property']['count'], 0)
+        self.assertEqual(groups['other']['label'], 'Other / Needs review')
+        self.assertEqual(groups['identity']['query'], 'category=identity')
+        self.assertEqual([group['value'] for group in response.context['document_groups']], ['insurance'])
+        self.assertContains(response, 'Browse by category')
+        self.assertNotContains(response, 'passport.png')
+
+    def test_category_counts_respect_archive_and_starred_filters(self):
+        doc = self.doc()
+        doc.archived = True
+        doc.starred = True
+        doc.save()
+        response = self.client.get('/vault/?archived=1&starred=1')
+        groups = {group['value']: group for group in response.context['category_groups']}
+        self.assertEqual(groups['insurance']['count'], 1)
+        self.assertIn('archived=1', groups['insurance']['query'])
+        self.assertIn('starred=1', groups['insurance']['query'])
+        response = self.client.get('/vault/')
+        self.assertEqual(sum(group['count'] for group in response.context['category_groups']), 0)
+
     def test_anonymous_and_nonowner_cannot_access_routes(self):
         doc = self.doc()
         paths = ['/vault/', '/vault/upload/', '/vault/people/new/', '/vault/gmail/callback/',
@@ -303,6 +331,40 @@ class VaultTests(TestCase):
         self.assertEqual(connection.status, 'ready')
         self.assertEqual(connection.skipped, 2)
         self.assertFalse(Document.objects.exists())
+
+    @patch('vault.sync.GmailClient')
+    def test_subject_does_not_qualify_unrelated_attachments(self, client_type):
+        self.connection()
+        client = client_type.return_value
+        client.get.side_effect = [{'historyId': '100'}, {'messages': [{'id': 'a'}]}]
+        client.message.return_value = {'payload': {'headers': [{'name': 'Subject', 'value': 'Insurance policy'}],
+            'parts': [{'filename': name, 'body': {'attachmentId': name}} for name in
+                      ('logo.png', 'banner.jpg', 'document.pdf', 'policy.exe')]}}
+        run_page()
+        client.attachment.assert_not_called()
+        self.assertFalse(Document.objects.exists())
+
+    @patch('vault.sync.GmailClient')
+    def test_incremental_spam_trash_and_drafts_are_not_imported(self, client_type):
+        self.connection(full_sync=False, history_id='100')
+        client = client_type.return_value
+        client.get.return_value = {'history': [{'messagesAdded': [{'message': {'id': str(i)}} for i in range(3)]}], 'historyId': '101'}
+        client.message.side_effect = [dict(self.message(), labelIds=[label]) for label in ('SPAM', 'TRASH', 'DRAFT')]
+        run_page()
+        client.attachment.assert_not_called()
+        self.assertFalse(Document.objects.exists())
+
+    @patch('vault.sync.GmailClient')
+    def test_attachment_download_and_underscore_filename(self, client_type):
+        self.connection()
+        client = client_type.return_value
+        client.get.side_effect = [{'historyId': '100'}, {'messages': [{'id': 'a'}]}]
+        client.message.return_value = {'payload': {'parts': [{'filename': 'annual_bank_statement.png',
+            'body': {'size': len(png()), 'attachmentId': 'attachment'}}]}}
+        client.attachment.return_value = {'data': base64.urlsafe_b64encode(png()).decode()}
+        run_page()
+        client.attachment.assert_called_once_with('a', 'attachment')
+        self.assertEqual(storage.read_object(Document.objects.get()), png())
 
     @patch('vault.sync.GmailClient')
     def test_active_worker_lease_is_not_stolen(self, client_type):

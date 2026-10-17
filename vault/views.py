@@ -6,7 +6,7 @@ import uuid
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import F
+from django.db.models import Count, F
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -29,9 +29,6 @@ def audit(request, action):
 @require_GET
 def index(request):
     documents = scoped(request, Document).select_related('person').filter(archived=request.GET.get('archived') == '1')
-    category = request.GET.get('category', '')
-    if category in Category.values:
-        documents = documents.filter(category=category)
     if request.GET.get('starred') == '1':
         documents = documents.filter(starred=True)
     if request.GET.get('expiring') == '1':
@@ -39,6 +36,18 @@ def index(request):
         from django.db.models import Q
         until = timezone.localdate()+timedelta(days=30)
         documents = documents.filter(Q(expires_on__lte=until) | Q(renew_on__lte=until))
+    counts = dict(documents.values('category').annotate(total=Count('id')).values_list('category', 'total'))
+    category = request.GET.get('category', '')
+    category_groups = []
+    for value, label in Category.choices:
+        params = request.GET.copy()
+        params.pop('page', None)
+        params['category'] = value
+        category_groups.append({'value': value, 'label': 'Other / Needs review' if value == Category.OTHER else label,
+                                'count': counts.get(value, 0), 'query': params.urlencode()})
+    if category in Category.values:
+        documents = documents.filter(category=category)
+    documents = documents.order_by('category', '-starred', '-created_at', 'id')
     page = Paginator(documents, 20).get_page(request.GET.get('page'))
     unavailable = False
     for document in page:
@@ -47,7 +56,14 @@ def index(request):
         except VaultError:
             document.title = 'Document temporarily unavailable'
             unavailable = True
+    groups = []
+    for document in page:
+        if not groups or groups[-1]['value'] != document.category:
+            label = 'Other / Needs review' if document.category == Category.OTHER else document.get_category_display()
+            groups.append({'value': document.category, 'label': label, 'documents': []})
+        groups[-1]['documents'].append(document)
     return render(request, 'vault/index.html', {'page': page, 'categories': Category.choices, 'category': category,
+        'category_groups': category_groups, 'document_groups': groups,
         'connection': GmailConnection.objects.filter(pk=request.owner_membership.family_id).first(),
         'gmail_configured': gmail.configured(), 'unavailable': unavailable,
         'filters': request.GET.urlencode(), 'archived': request.GET.get('archived') == '1'})

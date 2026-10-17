@@ -1,6 +1,7 @@
 import base64
 import binascii
 import uuid
+from pathlib import PurePosixPath
 from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
@@ -33,11 +34,11 @@ def renew(connection):
 
 
 def parts(payload, depth=0):
-    if depth > 20:
+    if depth > 20 or not isinstance(payload, dict):
         return
     if payload.get('filename'):
         yield payload
-    for child in payload.get('parts', []):
+    for child in payload.get('parts', []) or []:
         yield from parts(child, depth+1)
 
 
@@ -49,12 +50,17 @@ def import_message(client, connection, message_id):
         if exc.status == 404:  # Message removed after the listing.
             return 0, 0
         raise
+    if set(message.get('labelIds', [])) & {'SPAM', 'TRASH', 'DRAFT'}:
+        return 0, 0
     payload = message.get('payload', {})
-    subject = next((h.get('value', '') for h in payload.get('headers', []) if h.get('name', '').lower() == 'subject'), '')
     count = skipped = 0
     for part in parts(payload):
         name = part['filename']
-        category = classify(name + ' ' + subject)
+        # Subject keywords do not make logos, banners or arbitrary attachments
+        # family documents. Require a supported, explicitly relevant filename.
+        if not isinstance(name, str) or PurePosixPath(name).suffix.lower() not in ('.pdf', '.png', '.jpg', '.jpeg'):
+            continue
+        category = classify(name.replace('_', ' '))
         # Ingestion is intentionally conservative; manually upload unmatched documents.
         if not category:
             continue
@@ -134,7 +140,7 @@ def run_page():
                 values.update(history_id=connection.baseline_history if connection.full_sync else result['historyId'],
                               full_sync=False, baseline_history='', requested=False, last_success=timezone.now(), status='ready')
             held(connection).update(**values)
-    except (VaultError, KeyError, TypeError, ValueError):
+    except (VaultError, KeyError, TypeError, ValueError, OSError):
         # Preserve checkpoint; replay is safe because content hashes are unique.
         held(connection).update(status='error', requested=False, lease=None, lease_until=None)
     return True
