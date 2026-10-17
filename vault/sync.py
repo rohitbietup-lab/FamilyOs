@@ -152,8 +152,9 @@ def run_page():
     except (VaultError, KeyError, TypeError, ValueError, OSError) as exc:
         # Never log exception prose, provider bodies, filenames, IDs or tokens.
         if not isinstance(exc, LeaseLost):
-            logger.warning('Gmail sync stopped: type=%s http_status=%s', type(exc).__name__,
-                           exc.status if isinstance(exc, GmailError) else 0)
+            logger.warning('Gmail sync stopped: type=%s http_status=%s reason=%s', type(exc).__name__,
+                           exc.status if isinstance(exc, GmailError) else 0,
+                           exc.reason if isinstance(exc, GmailError) else '')
         # Preserve checkpoint; replay is safe because content hashes are unique.
         held(connection).update(status='error', requested=False, lease=None, lease_until=None)
     return True

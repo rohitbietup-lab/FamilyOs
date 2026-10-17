@@ -15,6 +15,12 @@ API = 'https://gmail.googleapis.com/gmail/v1/users/me/'
 
 
 class GmailError(VaultError):
+    API_REASONS = frozenset({
+        'rateLimitExceeded', 'userRateLimitExceeded', 'dailyLimitExceeded', 'quotaExceeded',
+        'insufficientPermissions', 'accessNotConfigured', 'forbidden', 'domainPolicy',
+        'backendError', 'notFound', 'downloadRestricted', 'cannotGetAttachment',
+        'PERMISSION_DENIED', 'RESOURCE_EXHAUSTED',
+    })
     MESSAGES = {
         'invalid_client': 'Google rejected the Gmail client credentials. Configure a matching Web application client ID and secret, then restart FamilyOS.',
         'unauthorized_client': 'Google did not allow this Gmail client. Check the Web application client configuration.',
@@ -26,7 +32,7 @@ class GmailError(VaultError):
 
     def __init__(self, status=0, reason=''):
         self.status = status
-        self.reason = reason if isinstance(reason, str) and reason in self.MESSAGES else ''
+        self.reason = reason if isinstance(reason, str) and (reason in self.MESSAGES or reason in self.API_REASONS) else ''
         super().__init__(self.MESSAGES.get(self.reason, 'Gmail is unavailable. Try connecting again.'))
 
 
@@ -57,21 +63,25 @@ def request_json(method, url, *, data=None, headers=None, params=None, limit=15_
         with requests.request(method, url, data=data, headers=headers, params=params,
                               timeout=(5, 30), allow_redirects=False, stream=True) as response:
             if response.status_code != 200:
-                # Only inspect bounded token errors; never retain provider prose,
+                # Only inspect bounded errors; never retain provider prose,
                 # credentials or error_description in exceptions or messages.
-                if url == TOKEN_URL:
-                    payload = bytearray()
-                    for chunk in response.iter_content(4096):
-                        payload.extend(chunk)
-                        if len(payload) > 65536:
-                            raise GmailError(response.status_code)
-                    try:
-                        error = json.loads(payload)
-                    except ValueError:
-                        error = {}
-                    reason = error.get('error', '') if isinstance(error, dict) else ''
-                    raise GmailError(response.status_code, reason)
-                raise GmailError(response.status_code)
+                payload = bytearray()
+                for chunk in response.iter_content(4096):
+                    payload.extend(chunk)
+                    if len(payload) > 65536:
+                        raise GmailError(response.status_code)
+                try:
+                    error = json.loads(payload)
+                except ValueError:
+                    error = {}
+                reason = error.get('error', '') if isinstance(error, dict) else ''
+                if isinstance(reason, dict):
+                    provider_error = reason
+                    entries = provider_error.get('errors', [])
+                    candidates = [e.get('reason') for e in entries if isinstance(e, dict)] if isinstance(entries, list) else []
+                    candidates.append(provider_error.get('status'))
+                    reason = next((v for v in candidates if isinstance(v, str) and v in GmailError.API_REASONS), '')
+                raise GmailError(response.status_code, reason)
             payload = bytearray()
             for chunk in response.iter_content(65536):
                 payload.extend(chunk)
@@ -106,7 +116,9 @@ def retry_request_json(method, url, **kwargs):
         try:
             return request_json(method, url, **kwargs)
         except GmailError as exc:
-            if attempt == 2 or exc.status not in (0, 429, 500, 502, 503, 504):
+            retryable = exc.status in (0, 429, 500, 502, 503, 504) or (
+                exc.status == 403 and exc.reason in ('rateLimitExceeded', 'userRateLimitExceeded', 'quotaExceeded'))
+            if attempt == 2 or not retryable:
                 raise
             time.sleep(2 ** attempt)
 
