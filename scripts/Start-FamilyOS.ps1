@@ -30,10 +30,19 @@ try {
     # A remote scanner remains the operator's responsibility.
     $scannerRoot = Join-Path $env:ProgramFiles 'ClamAV'
     $scannerExe = Join-Path $scannerRoot 'clamd.exe'
+    $scannerConfig = Join-Path $scannerRoot 'clamd.conf'
+    if ($env:FAMILYOS_CLAMD_CONFIG) { $scannerConfig = $env:FAMILYOS_CLAMD_CONFIG }
     if ($env:FAMILYOS_CLAMD_HOST -in @('localhost', '127.0.0.1') -and (Test-Path -LiteralPath $scannerExe)) {
         $scanner = Get-CimInstance Win32_Process -Filter "name = 'clamd.exe'" | Where-Object { $_.ExecutablePath -eq $scannerExe }
         if (-not $scanner) {
-            Start-Process -FilePath $scannerExe -ArgumentList @('--config-file', ('"' + (Join-Path $scannerRoot 'clamd.conf') + '"')) -WorkingDirectory $scannerRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDirectory 'scanner-output.log') -RedirectStandardError (Join-Path $logDirectory 'scanner-error.log') | Out-Null
+            Start-Process -FilePath $scannerExe -ArgumentList @('--config-file', ('"' + $scannerConfig + '"')) -WorkingDirectory $scannerRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDirectory 'scanner-output.log') -RedirectStandardError (Join-Path $logDirectory 'scanner-error.log') | Out-Null
+        }
+        if ($env:FAMILYOS_FRESHCLAM_CONFIG) {
+            $updaterExe = Join-Path $scannerRoot 'freshclam.exe'
+            $updater = Get-CimInstance Win32_Process -Filter "name = 'freshclam.exe'" | Where-Object { $_.ExecutablePath -eq $updaterExe }
+            if (-not $updater) {
+                Start-Process -FilePath $updaterExe -ArgumentList @('--daemon', '--config-file', ('"' + $env:FAMILYOS_FRESHCLAM_CONFIG + '"')) -WorkingDirectory $scannerRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logDirectory 'scanner-updater-output.log') -RedirectStandardError (Join-Path $logDirectory 'scanner-updater-error.log') | Out-Null
+            }
         }
     }
     $listener = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
